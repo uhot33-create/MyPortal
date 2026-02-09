@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef } from "react";
 import { normalizeXUsername, usernameFromProfileUrl } from "@/lib/newsSources";
@@ -32,6 +32,7 @@ function resolveUsername(username?: string, profileUrl?: string): string | null 
 
 export default function XEmbedTimeline({ username, profileUrl, height = 600 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const initializedRef = useRef(false);
   const screenName = useMemo(() => resolveUsername(username, profileUrl), [username, profileUrl]);
 
   useEffect(() => {
@@ -45,7 +46,8 @@ export default function XEmbedTimeline({ username, profileUrl, height = 600 }: P
     }
 
     const mount = async () => {
-      if (!screenName || !containerRef.current) return;
+      if (!screenName || !containerRef.current || initializedRef.current) return;
+      initializedRef.current = true;
       containerRef.current.innerHTML = "";
 
       const create = window.twttr?.widgets?.createTimeline;
