@@ -33,9 +33,19 @@ function resolveUsername(username?: string, profileUrl?: string): string | null 
 export default function XEmbedTimeline({ username, profileUrl, height = 600 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
+  const previousScreenNameRef = useRef<string | null>(null);
   const screenName = useMemo(() => resolveUsername(username, profileUrl), [username, profileUrl]);
 
   useEffect(() => {
+    const changedUser = previousScreenNameRef.current !== screenName;
+    if (changedUser) {
+      initializedRef.current = false;
+      if (containerRef.current) {
+        containerRef.current.innerHTML = "";
+      }
+      previousScreenNameRef.current = screenName;
+    }
+
     let script = document.querySelector("script[data-x-wjs]") as HTMLScriptElement | null;
     if (!script) {
       script = document.createElement("script");
