@@ -50,6 +50,22 @@ function waitForIframe(element: HTMLElement, timeoutMs: number): Promise<boolean
   });
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
+
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
+
 export default function XEmbedTimeline({ username, profileUrl, height = 600 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const previousScreenNameRef = useRef<string | null>(null);
@@ -100,10 +116,14 @@ export default function XEmbedTimeline({ username, profileUrl, height = 600 }: P
         const create = window.twttr?.widgets?.createTimeline;
 
         if (create) {
-          await create({ sourceType: "profile", screenName }, container, {
-            height,
-            chrome: "nofooter"
-          });
+          await withTimeout(
+            create({ sourceType: "profile", screenName }, container, {
+              height,
+              chrome: "nofooter"
+            }),
+            10000,
+            "timeline_create_timeout"
+          );
         } else {
           const anchor = document.createElement("a");
           anchor.className = "twitter-timeline";
@@ -151,21 +171,21 @@ export default function XEmbedTimeline({ username, profileUrl, height = 600 }: P
   }, []);
 
   if (!screenName) {
-    return <p className="muted">Xユーザー設定が不正です。username または profileUrl を見直してください。</p>;
+    return <p className="muted">X user setting is invalid. Please review username or profileUrl.</p>;
   }
 
   return (
     <div>
-      {status === "loading" ? <p className="muted">Xタイムラインを読み込み中...</p> : null}
+      {status === "loading" ? <p className="muted">Loading X timeline...</p> : null}
       {status === "error" ? (
         <div className="item" style={{ marginBottom: 8 }}>
-          <p className="muted">Xタイムラインの読み込みに失敗しました。429制限の可能性があります。</p>
+          <p className="muted">Failed to load X timeline. This may be caused by temporary 429 limits.</p>
           <div className="row">
             <button type="button" onClick={() => setAttempt((prev) => prev + 1)}>
-              再試行
+              Retry
             </button>
             <a href={`https://x.com/${screenName}`} target="_blank" rel="noreferrer noopener">
-              Xで開く
+              Open on X
             </a>
           </div>
         </div>
