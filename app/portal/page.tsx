@@ -1,72 +1,41 @@
 export const dynamic = "force-dynamic";
 
 import { NavBar } from "@/components/NavBar";
+import { NewsTabs } from "@/components/NewsTabs";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { XTimelineTabs } from "@/components/XTimelineTabs";
 import { getNewsSettings, getXSettings } from "@/lib/firestoreSettings";
-import { fetchNewsForKeyword, mergeAndDedupeNews } from "@/lib/rss";
-
-function formatJst(value: Date | null): string {
-  if (!value) return "Unknown date";
-  return new Intl.DateTimeFormat("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(value);
-}
+import { fetchNewsForKeyword } from "@/lib/rss";
 
 export default async function PortalPage() {
   const [newsSettings, xTargets] = await Promise.all([getNewsSettings(), getXSettings()]);
 
   const enabledNews = newsSettings.filter((x) => x.enabled && x.keyword.trim());
-  const globalLimit = enabledNews.reduce((sum, cur) => sum + Math.max(1, Number(cur.limit || 5)), 0);
-
   const newsResults = enabledNews.length ? await Promise.all(enabledNews.map((s) => fetchNewsForKeyword(s))) : [];
-  const failures = newsResults.filter((x) => x.error);
-  const news = mergeAndDedupeNews(newsResults, globalLimit || 10);
+  const newsTabs = newsResults.map((result) => ({
+    keywordId: result.keywordId,
+    keyword: result.keyword,
+    error: result.error,
+    items: result.items.map((item) => ({
+      title: item.title,
+      link: item.link,
+      publishedAt: item.publishedAt ? item.publishedAt.toISOString() : null
+    }))
+  }));
 
   return (
     <main className="container">
       <NavBar current="portal" />
+      <section className="card">
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ margin: 0 }}>Theme</h2>
+          <ThemeSwitcher />
+        </div>
+      </section>
 
       <section className="card">
-        <h2>News (fetched on render)</h2>
-        {!enabledNews.length ? (
-          <p className="muted">No news keywords are configured. Please add keywords in Settings.</p>
-        ) : null}
-
-        {!!failures.length && (
-          <div className="item" style={{ marginBottom: 12 }}>
-            <strong>Failed to fetch some keywords</strong>
-            <ul>
-              {failures.map((f) => (
-                <li key={f.keywordId}>
-                  {f.keyword}: {f.error}
-                </li>
-              ))}
-            </ul>
-            <p className="muted">Please review keyword or RSS URL settings.</p>
-          </div>
-        )}
-
-        {news.length ? (
-          <div className="item-list">
-            {news.map((item) => (
-              <article className="item" key={item.link}>
-                <a href={item.link} target="_blank" rel="noreferrer noopener">
-                  {item.title}
-                </a>
-                <div className="muted">
-                  {item.source} / {formatJst(item.publishedAt)}
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="muted">No articles available. Please review keyword settings.</p>
-        )}
+        <h2>News by Keyword</h2>
+        <NewsTabs tabs={newsTabs} />
       </section>
 
       <section className="card">

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type User } from "firebase/auth";
 import { NavBar } from "@/components/NavBar";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { getClientAuth } from "@/lib/firebaseClient";
 import type { NewsKeywordSetting, XTargetSetting } from "@/lib/types";
 
@@ -15,7 +16,7 @@ function withOrder<T extends { order: number }>(items: T[]): T[] {
 
 async function authHeaders(user: User | null): Promise<HeadersInit> {
   if (!user) {
-    throw new Error("ログインが必要です");
+    throw new Error("Login is required");
   }
 
   const token = await user.getIdToken();
@@ -64,7 +65,7 @@ export default function SettingsPage() {
         ]);
 
         if (!newsRes.ok || !xRes.ok) {
-          throw new Error("設定取得に失敗しました");
+          throw new Error("Failed to load settings");
         }
 
         const newsJson = (await newsRes.json()) as { items: NewsForm[] };
@@ -72,7 +73,7 @@ export default function SettingsPage() {
         setNews(withOrder(newsJson.items));
         setXTargets(withOrder(xJson.items));
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : "設定取得に失敗しました");
+        setMessage(error instanceof Error ? error.message : "Failed to load settings");
       } finally {
         setLoading(false);
       }
@@ -134,7 +135,7 @@ export default function SettingsPage() {
       await signInWithPopup(getClientAuth(), provider);
       setMessage("");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "ログインに失敗しました");
+      setMessage(error instanceof Error ? error.message : "Failed to login");
     }
   };
 
@@ -143,7 +144,7 @@ export default function SettingsPage() {
       await signOut(getClientAuth());
       setMessage("");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "ログアウトに失敗しました");
+      setMessage(error instanceof Error ? error.message : "Failed to logout");
     }
   };
 
@@ -180,14 +181,14 @@ export default function SettingsPage() {
 
       if (!newsRes.ok || !xRes.ok) {
         const maybeError = await xRes.json().catch(() => null);
-        throw new Error(maybeError?.error ?? "保存に失敗しました");
+        throw new Error(maybeError?.error ?? "Failed to save settings");
       }
 
       setNews(newsPayload);
       setXTargets(xPayload);
-      setMessage("保存しました");
+      setMessage("Saved");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "保存に失敗しました");
+      setMessage(error instanceof Error ? error.message : "Failed to save settings");
     } finally {
       setSaving(false);
     }
@@ -197,7 +198,7 @@ export default function SettingsPage() {
     return (
       <main className="container">
         <NavBar current="settings" />
-        <section className="card">認証状態を確認中...</section>
+        <section className="card">Checking authentication...</section>
       </main>
     );
   }
@@ -207,11 +208,17 @@ export default function SettingsPage() {
       <main className="container">
         <NavBar current="settings" />
         <section className="card">
-          <h2>設定画面</h2>
-          <p className="muted">Googleアカウントでログインしてください。</p>
+          <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+            <h2 style={{ margin: 0 }}>Theme</h2>
+            <ThemeSwitcher />
+          </div>
+        </section>
+        <section className="card">
+          <h2>Settings</h2>
+          <p className="muted">Please login with Google account.</p>
           <div className="row">
             <button className="primary" type="button" onClick={login}>
-              Googleでログイン
+              Login with Google
             </button>
             {message ? <span>{message}</span> : null}
           </div>
@@ -224,7 +231,7 @@ export default function SettingsPage() {
     return (
       <main className="container">
         <NavBar current="settings" />
-        <section className="card">読み込み中...</section>
+        <section className="card">Loading...</section>
       </main>
     );
   }
@@ -232,42 +239,48 @@ export default function SettingsPage() {
   return (
     <main className="container">
       <NavBar current="settings" />
+      <section className="card">
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ margin: 0 }}>Theme</h2>
+          <ThemeSwitcher />
+        </div>
+      </section>
 
       <section className="card">
         <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ margin: 0 }}>設定画面</h2>
+          <h2 style={{ margin: 0 }}>Settings</h2>
           <div className="row" style={{ alignItems: "center" }}>
             <span className="muted">{user.email}</span>
             <button type="button" onClick={logout}>
-              ログアウト
+              Logout
             </button>
           </div>
         </div>
       </section>
 
       <section className="card">
-        <h2>ニュースキーワード設定</h2>
-        <p className="muted">キーワード単位で表示上限を設定できます。RSS URLを入れるとそちらを優先します。</p>
+        <h2>News keywords</h2>
+        <p className="muted">Set per-keyword display limits. Optional RSS URL overrides keyword source.</p>
         <div className="item-list">
           {sortedNews.map((row, index) => (
             <div className="item" key={row.id}>
               <div className="grid">
                 <label>
-                  キーワード
+                  Keyword
                   <input
                     value={row.keyword}
                     onChange={(e) => setNews((prev) => prev.map((x) => (x.id === row.id ? { ...x, keyword: e.target.value } : x)))}
                   />
                 </label>
                 <label>
-                  RSS URL（任意）
+                  RSS URL (optional)
                   <input
                     value={row.rssUrl ?? ""}
                     onChange={(e) => setNews((prev) => prev.map((x) => (x.id === row.id ? { ...x, rssUrl: e.target.value } : x)))}
                   />
                 </label>
                 <label>
-                  表示上限数
+                  Limit
                   <input
                     type="number"
                     min={1}
@@ -281,7 +294,7 @@ export default function SettingsPage() {
                   />
                 </label>
                 <label>
-                  有効
+                  Enabled
                   <input
                     type="checkbox"
                     checked={row.enabled}
@@ -291,17 +304,17 @@ export default function SettingsPage() {
               </div>
               <div className="row" style={{ marginTop: 8 }}>
                 <button type="button" onClick={() => setNews(withOrder(move(sortedNews, row.id, -1)))} disabled={index === 0}>
-                  上へ
+                  Up
                 </button>
                 <button
                   type="button"
                   onClick={() => setNews(withOrder(move(sortedNews, row.id, 1)))}
                   disabled={index === sortedNews.length - 1}
                 >
-                  下へ
+                  Down
                 </button>
                 <button type="button" className="danger" onClick={() => setNews(withOrder(sortedNews.filter((x) => x.id !== row.id)))}>
-                  削除
+                  Delete
                 </button>
               </div>
             </div>
@@ -309,27 +322,27 @@ export default function SettingsPage() {
         </div>
         <div className="row" style={{ marginTop: 12 }}>
           <button type="button" onClick={addNews}>
-            キーワード追加
+            Add keyword
           </button>
         </div>
       </section>
 
       <section className="card">
-        <h2>X対象ユーザー設定</h2>
-        <p className="muted">username または profileUrl のいずれかを入力してください。</p>
+        <h2>X targets</h2>
+        <p className="muted">Enter either username or profileUrl.</p>
         <div className="item-list">
           {sortedX.map((row, index) => (
             <div className="item" key={row.id}>
               <div className="grid">
                 <label>
-                  表示名
+                  Name
                   <input
                     value={row.name}
                     onChange={(e) => setXTargets((prev) => prev.map((x) => (x.id === row.id ? { ...x, name: e.target.value } : x)))}
                   />
                 </label>
                 <label>
-                  username
+                  Username
                   <input
                     value={row.username ?? ""}
                     onChange={(e) =>
@@ -338,7 +351,7 @@ export default function SettingsPage() {
                   />
                 </label>
                 <label>
-                  profileUrl
+                  Profile URL
                   <input
                     value={row.profileUrl ?? ""}
                     onChange={(e) =>
@@ -347,7 +360,7 @@ export default function SettingsPage() {
                   />
                 </label>
                 <label>
-                  有効
+                  Enabled
                   <input
                     type="checkbox"
                     checked={row.enabled}
@@ -359,21 +372,21 @@ export default function SettingsPage() {
               </div>
               <div className="row" style={{ marginTop: 8 }}>
                 <button type="button" onClick={() => setXTargets(withOrder(move(sortedX, row.id, -1)))} disabled={index === 0}>
-                  上へ
+                  Up
                 </button>
                 <button
                   type="button"
                   onClick={() => setXTargets(withOrder(move(sortedX, row.id, 1)))}
                   disabled={index === sortedX.length - 1}
                 >
-                  下へ
+                  Down
                 </button>
                 <button
                   type="button"
                   className="danger"
                   onClick={() => setXTargets(withOrder(sortedX.filter((x) => x.id !== row.id)))}
                 >
-                  削除
+                  Delete
                 </button>
               </div>
             </div>
@@ -381,7 +394,7 @@ export default function SettingsPage() {
         </div>
         <div className="row" style={{ marginTop: 12 }}>
           <button type="button" onClick={addX}>
-            ユーザー追加
+            Add target
           </button>
         </div>
       </section>
@@ -389,7 +402,7 @@ export default function SettingsPage() {
       <section className="card">
         <div className="row">
           <button className="primary" type="button" onClick={save} disabled={saving}>
-            {saving ? "保存中..." : "保存"}
+            {saving ? "Saving..." : "Save"}
           </button>
           {message ? <span>{message}</span> : null}
         </div>
