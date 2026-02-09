@@ -1,5 +1,6 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getNewsSettings, saveNewsSettings } from "@/lib/firestoreSettings";
+import { requireUser } from "@/lib/auth";
 
 type NewsPayload = {
   id: string;
@@ -14,8 +15,13 @@ function isValidItem(item: NewsPayload): boolean {
   return Boolean(item.id && typeof item.keyword === "string" && Number.isFinite(item.order) && Number.isFinite(item.limit));
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const user = await requireUser(req);
+    if (!user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
     const items = await getNewsSettings();
     return NextResponse.json({ items });
   } catch (error) {
@@ -28,6 +34,11 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const user = await requireUser(req);
+    if (!user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
     const body = (await req.json()) as { items?: NewsPayload[] };
     const input = Array.isArray(body.items) ? body.items : [];
 

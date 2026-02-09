@@ -1,5 +1,6 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getXSettings, saveXSettings } from "@/lib/firestoreSettings";
+import { requireUser } from "@/lib/auth";
 
 type XPayload = {
   id: string;
@@ -14,8 +15,13 @@ function isValidItem(item: XPayload): boolean {
   return Boolean(item.id && typeof item.name === "string" && Number.isFinite(item.order));
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const user = await requireUser(req);
+    if (!user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
     const items = await getXSettings();
     return NextResponse.json({ items });
   } catch (error) {
@@ -25,6 +31,11 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const user = await requireUser(req);
+    if (!user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
     const body = (await req.json()) as { items?: XPayload[] };
     const input = Array.isArray(body.items) ? body.items : [];
 

@@ -1,7 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type User } from "firebase/auth";
 import { NavBar } from "@/components/NavBar";
+import { getClientAuth } from "@/lib/firebaseClient";
 import type { NewsKeywordSetting, XTargetSetting } from "@/lib/types";
 
 type NewsForm = Omit<NewsKeywordSetting, "createdAt" | "updatedAt">;
@@ -11,7 +13,21 @@ function withOrder<T extends { order: number }>(items: T[]): T[] {
   return items.map((item, index) => ({ ...item, order: index + 1 }));
 }
 
+async function authHeaders(user: User | null): Promise<HeadersInit> {
+  if (!user) {
+    throw new Error("ログインが必要です");
+  }
+
+  const token = await user.getIdToken();
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`
+  };
+}
+
 export default function SettingsPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [news, setNews] = useState<NewsForm[]>([]);
   const [xTargets, setXTargets] = useState<XForm[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,14 +35,37 @@ export default function SettingsPage() {
   const [message, setMessage] = useState<string>("");
 
   useEffect(() => {
+    const auth = getClientAuth();
+    const unsub = onAuthStateChanged(auth, (nextUser) => {
+      setUser(nextUser);
+      setAuthLoading(false);
+    });
+
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setLoading(false);
+      setNews([]);
+      setXTargets([]);
+      return;
+    }
+
     const load = async () => {
+      setLoading(true);
+      setMessage("");
       try {
+        const headers = await authHeaders(user);
         const [newsRes, xRes] = await Promise.all([
-          fetch("/api/settings/news", { cache: "no-store" }),
-          fetch("/api/settings/x", { cache: "no-store" })
+          fetch("/api/settings/news", { cache: "no-store", headers }),
+          fetch("/api/settings/x", { cache: "no-store", headers })
         ]);
 
-        if (!newsRes.ok || !xRes.ok) throw new Error("設定取得に失敗しました");
+        if (!newsRes.ok || !xRes.ok) {
+          throw new Error("設定取得に失敗しました");
+        }
 
         const newsJson = (await newsRes.json()) as { items: NewsForm[] };
         const xJson = (await xRes.json()) as { items: XForm[] };
@@ -40,7 +79,7 @@ export default function SettingsPage() {
     };
 
     void load();
-  }, []);
+  }, [authLoading, user]);
 
   const sortedNews = useMemo(() => [...news].sort((a, b) => a.order - b.order), [news]);
   const sortedX = useMemo(() => [...xTargets].sort((a, b) => a.order - b.order), [xTargets]);
@@ -89,10 +128,31 @@ export default function SettingsPage() {
     return clone;
   };
 
+  const login = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(getClientAuth(), provider);
+      setMessage("");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "ログインに失敗しました");
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await signOut(getClientAuth());
+      setMessage("");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "ログアウトに失敗しました");
+    }
+  };
+
   const save = async () => {
     setSaving(true);
     setMessage("");
     try {
+      const headers = await authHeaders(user);
+
       const newsPayload = withOrder(
         sortedNews.map((x) => ({ ...x, keyword: x.keyword.trim(), rssUrl: x.rssUrl?.trim() || "" }))
       );
@@ -108,18 +168,19 @@ export default function SettingsPage() {
       const [newsRes, xRes] = await Promise.all([
         fetch("/api/settings/news", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({ items: newsPayload })
         }),
         fetch("/api/settings/x", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify({ items: xPayload })
         })
       ]);
 
       if (!newsRes.ok || !xRes.ok) {
-        throw new Error("保存に失敗しました");
+        const maybeError = await xRes.json().catch(() => null);
+        throw new Error(maybeError?.error ?? "保存に失敗しました");
       }
 
       setNews(newsPayload);
@@ -131,6 +192,33 @@ export default function SettingsPage() {
       setSaving(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <main className="container">
+        <NavBar current="settings" />
+        <section className="card">認証状態を確認中...</section>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return (
+      <main className="container">
+        <NavBar current="settings" />
+        <section className="card">
+          <h2>設定画面</h2>
+          <p className="muted">Googleアカウントでログインしてください。</p>
+          <div className="row">
+            <button className="primary" type="button" onClick={login}>
+              Googleでログイン
+            </button>
+            {message ? <span>{message}</span> : null}
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   if (loading) {
     return (
@@ -144,6 +232,18 @@ export default function SettingsPage() {
   return (
     <main className="container">
       <NavBar current="settings" />
+
+      <section className="card">
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+          <h2 style={{ margin: 0 }}>設定画面</h2>
+          <div className="row" style={{ alignItems: "center" }}>
+            <span className="muted">{user.email}</span>
+            <button type="button" onClick={logout}>
+              ログアウト
+            </button>
+          </div>
+        </div>
+      </section>
 
       <section className="card">
         <h2>ニュースキーワード設定</h2>
