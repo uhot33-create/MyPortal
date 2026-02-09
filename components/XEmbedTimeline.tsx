@@ -160,9 +160,14 @@ export default function XEmbedTimeline({ username, profileUrl, height = 600 }: P
       {status === "error" ? (
         <div className="item" style={{ marginBottom: 8 }}>
           <p className="muted">Xタイムラインの読み込みに失敗しました。429制限の可能性があります。</p>
-          <button type="button" onClick={() => setAttempt((prev) => prev + 1)}>
-            再試行
-          </button>
+          <div className="row">
+            <button type="button" onClick={() => setAttempt((prev) => prev + 1)}>
+              再試行
+            </button>
+            <a href={`https://x.com/${screenName}`} target="_blank" rel="noreferrer noopener">
+              Xで開く
+            </a>
+          </div>
         </div>
       ) : null}
       <div ref={containerRef} />
