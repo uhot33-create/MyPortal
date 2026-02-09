@@ -1,0 +1,131 @@
+# CodeX向けプロンプト（ポータル表示時に取得：ニュース＋X埋め込み／設定画面あり）
+
+あなたは熟練のフルスタックエンジニアです。Next.jsで「ニュース（表示時取得）」と「X公式 埋め込みタイムライン」を表示するポータルサイトを実装してください。
+要件・制約・成果物を厳密に守り、動作するコード一式を出力してください。
+
+## 目的
+- ポータルサイトで以下を閲覧できるようにする
+  1) ニュース：ポータル表示時点の最新情報を取得して一覧表示（日次収集・保存はしない）
+  2) X：特定ユーザー（設定で管理）の公式「埋め込みタイムライン」をポータル内で表示（API未使用）
+  3) 設定画面：ニュースキーワード、X対象ユーザを登録・編集できる
+  4) ポータル <-> 設定画面の遷移（リンク/ボタン）を実装する
+
+## 前提・制約
+- 課金なし（可能な限り無料枠）
+- Xの取得APIは使わない（埋め込みタイムラインのみ）
+- ニュースのバックエンド収集（Cron/バッチ）は不要
+- ニュースは「表示時点に取得して表示」する（サーバーサイドで取得して描画）
+- 実装はVercelにデプロイ可能な形を想定
+- Xは「Profile Timeline（埋め込みタイムライン）」を使う ([developer.x.com](https://developer.x.com/en/docs/x-for-websites/timelines/guides/profile-timeline?utm_source=chatgpt.com))
+- 埋め込みの一般案内：Xの埋め込みフィード ([help.x.com](https://help.x.com/en/using-x/embed-x-feed?utm_source=chatgpt.com))
+
+## 技術スタック（最短で動く構成）
+- Next.js（App Router）
+- 永続化：Firestore（Firebase）※設定値のみ保存（ニュース記事は保存しない）
+- ニュース取得：RSS（例：Google AlertsのRSS）またはGoogle News RSSを使用
+  - 実装は「キーワード -> RSS URL生成」または「設定でRSS URLを直接持つ」どちらかにしてよい
+  - ただしユーザーが「ニュースキーワード」だけ入力する要件があるので、基本はキーワードからRSSを生成する実装にする（生成できない場合はフォールバックとしてRSS URLも設定できるUIにして良い）
+
+## 機能要件（必須）
+### A. 画面
+1) /portal（ポータル）
+   -上：ニュース一覧（設定されたキーワードをもとに取得し、最新を表示）
+   -下：Xタイムライン（タブ切替で設定されたユーザを表示。最大5想定だが可変に対応）
+   - 「設定へ」ボタン/リンクで /settings に遷移
+2) /settings（設定）
+   - ニュースキーワード管理
+     - 追加/編集/削除/並び替え（最低でも追加・削除・保存は必須）
+     - enabled on/off（任意だができれば）
+   - ニュース表示件数管理
+　　　各キーワードごとの上限数
+   - X対象ユーザ管理
+     - 追加/編集/削除（最低でも追加・削除・保存は必須）
+     - 入力項目：表示名(name)、XプロフィールURL(profileUrl) または username、表示順(order)
+   - 「ポータルへ」ボタン/リンクで /portal に遷移
+   - 保存はFirestoreに永続化
+3) ルート / は /portal へリダイレクト（任意）
+
+### B. ニュース取得（表示時取得）
+- /portal のレンダリング時に以下を実行してニュースを表示
+  1) Firestoreからニュースキーワード設定を取得
+  2) 各キーワードに対してRSSを取得（サーバーサイドfetch）
+  3) 取得した記事を統合
+  4) 重複除去（URLをキー）
+  5) 新しい順にソートして上位N件表示（N:設定上限数を参照）
+- 取得失敗したキーワードは画面に「取得失敗」表示（全体は落とさない）
+- 取得元RSSがない/失敗時は「設定でキーワードを見直してください」と表示
+
+### C. X埋め込み（必須）
+- X APIは使わない
+- X公式の埋め込みタイムライン（Profile Timeline）を使用
+- Next.jsのクライアントコンポーネントで埋め込みscriptを適切に読み込み、タブ切替時に再初期化されるようにする
+  - components/XEmbedTimeline.tsx を作り、username または profileUrl から埋め込みを生成する
+
+## データ設計（Firestore：設定のみ）
+- settings/newsKeywords/{id}
+  - { keyword: string, enabled: boolean, order: number, createdAt, updatedAt }
+- settings/xTargets/{id}
+  - { name: string, username?: string, profileUrl?: string, enabled: boolean, order: number, createdAt, updatedAt }
+
+## セキュリティ/運用（必須）
+- Firestoreは最初は開発用ルールでも良いが、最低限の注意点をREADMEに書く
+- 設定画面の保存はサーバー経由（Route Handler）で実装してよい（推奨）
+  - app/api/settings/news/route.ts（GET/POST）
+  - app/api/settings/x/route.ts（GET/POST）
+  - もしくはサーバーアクションでも可
+
+## 成果物（必須）
+1) Next.jsプロジェクト一式（ディレクトリ/ファイル構成を提示）
+2) 主要ファイルの完全コード
+   - app/portal/page.tsx
+   - app/settings/page.tsx
+   - app/api/settings/news/route.ts（GET/POST）
+   - app/api/settings/x/route.ts（GET/POST）
+   - lib/firebase.ts（Firestore初期化）
+   - lib/rss.ts（RSS取得＆パース：複数RSS対応、失敗時の扱い）
+   - components/XEmbedTimeline.tsx（埋め込みコンポーネント）
+   - components/NavBar.tsx（/portal と /settings の遷移UI）
+3) .env.example（必要な環境変数一覧）
+4) ローカル起動手順、Vercelデプロイ手順、Firestore作成手順
+
+## 実装ガイド（品質要件）
+- TypeScriptを使用
+- 例外処理を入れる（RSS取得失敗、設定未登録、DBエラー）
+- UIは最低限見やすく（カード、タブ、入力フォーム、保存ボタン）
+- ニュース一覧はリンククリックで元記事へ遷移
+- 日付表示はJST基準で整形
+- 取得するRSSはCORS問題を避けるため必ずサーバーサイドで取得する（Route HandlerまたはServer Component内fetch）
+- ニュース取得は並列化（Promise.all）し、タイムアウトも設定する
+
+## 仮定してよい点（不明なら合理的に決めて実装）
+- 認証は不要（個人用途想定）。後から追加できるようにコメントで拡張点を残す
+- ニュースRSSの生成方法：
+  - 例：Google News RSS（キーワードをURLエンコードしてRSS URL生成）を利用してよい
+  - ただし生成ロジックは1箇所（lib/newsSources.ts等）に集約する
+
+---
+
+出力手順：
+1) 先に「前提の仮定」を箇条書き
+2) 次に「ファイル構成」
+3) 次に「Firestoreコレクション設計」
+4) 次に主要ファイルの完全コードをファイルごとに提示
+5) 最後に手順（ローカル→Vercel）と動作確認方法
+
+不明点があっても質問で止まらず、合理的に仮定して最後まで実装を完了してください。
+
+## 禁止事項
+- 動的env参照
+- import時のFirebase初期化
+- 検証未実施のまま完了報告
+- コミット・pushを省略して終了
+- 省略表現（「適宜」「いい感じに」など）
+
+##Git運用ルール（自動実行）
+- 変更完了後、毎回以下を自動実行する
+  1. `git add -A`
+  2. 意味のあるコミットメッセージで `git commit`
+  3. `git push`
+- 1回のタスクで変更が大きい場合も、論理的に1コミットで完結させる
+- push先は現在ブランチ（通常 master）を使う
+- push後にコミットハッシュを必ず報告する
