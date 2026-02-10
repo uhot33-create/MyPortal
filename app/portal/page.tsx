@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { LayoutSwitcher } from "@/components/LayoutSwitcher";
 import { NavBar } from "@/components/NavBar";
 import { NewsTabs } from "@/components/NewsTabs";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
@@ -24,23 +25,43 @@ export default async function PortalPage() {
   }));
 
   return (
-    <main className="container">
+    <main className="container portal-page">
       <NavBar current="portal" />
       <section className="card">
         <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ margin: 0 }}>Theme</h2>
-          <ThemeSwitcher />
+          <h2 style={{ margin: 0 }}>Display Controls</h2>
+          <div className="row">
+            <ThemeSwitcher />
+            <LayoutSwitcher />
+          </div>
         </div>
       </section>
 
-      <section className="card">
-        <h2>News by Keyword</h2>
-        <NewsTabs tabs={newsTabs} />
+      <section className="card portal-hero-card">
+        <div className="portal-hero-banner">
+          <div className="portal-hero-block" />
+        </div>
+        <div className="portal-float-box">任意の画像</div>
+        <div className="portal-nav-strip">
+          <span>Home</span>
+          <span>|</span>
+          <span>About</span>
+          <span>|</span>
+          <span>Works</span>
+          <span>|</span>
+          <span>Contact</span>
+        </div>
       </section>
 
-      <section className="card">
-        <h2>X Embedded Timeline</h2>
-        <XTimelineTabs targets={xTargets} />
+      <section className="portal-main-grid">
+        <article className="card">
+          <h2>News</h2>
+          <NewsTabs tabs={newsTabs} />
+        </article>
+        <article className="card">
+          <h2>SNS Timeline</h2>
+          <XTimelineTabs targets={xTargets} />
+        </article>
       </section>
     </main>
   );

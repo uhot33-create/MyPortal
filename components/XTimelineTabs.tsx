@@ -33,7 +33,7 @@ export function XTimelineTabs({ targets }: { targets: XTargetSetting[] }) {
   const active = enabled.find((x) => x.id === activeId) ?? enabled[0];
 
   if (!enabled.length) {
-    return <p className="muted">X対象ユーザーが未設定です。設定画面で追加してください。</p>;
+    return <p className="muted">X target users are not configured. Please add users in Settings.</p>;
   }
 
   const onSelect = (id: string) => {
@@ -67,7 +67,7 @@ export function XTimelineTabs({ targets }: { targets: XTargetSetting[] }) {
         ))}
       </div>
 
-      {switchLocked ? <p className="muted">連続切替を抑制中です。1.5秒待ってください。</p> : null}
+      {switchLocked ? <p className="muted">Switch cooldown active. Please wait 1.5 seconds.</p> : null}
       {active ? <XEmbedTimeline username={active.username} profileUrl={active.profileUrl} /> : null}
     </div>
   );
