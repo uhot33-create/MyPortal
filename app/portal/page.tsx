@@ -38,9 +38,6 @@ export default async function PortalPage() {
       </section>
 
       <section className="card portal-hero-card">
-        <div className="portal-hero-banner">
-          <div className="portal-hero-block" />
-        </div>
         <div className="portal-nav-strip">
           <span>Home</span>
           <span>|</span>
