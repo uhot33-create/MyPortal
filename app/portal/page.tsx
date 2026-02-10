@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 
-import { NavBar } from "@/components/NavBar";
+import { AuthGate } from "@/components/AuthGate";
 import { NewsTabs } from "@/components/NewsTabs";
-import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { PortalCupnudleHeader } from "@/components/PortalCupnudleHeader";
 import { XTimelineTabs } from "@/components/XTimelineTabs";
 import { getNewsSettings, getXSettings } from "@/lib/firestoreSettings";
 import { fetchNewsForKeyword } from "@/lib/rss";
@@ -24,26 +24,20 @@ export default async function PortalPage() {
   }));
 
   return (
-    <main className="container portal-page">
-      <NavBar current="portal" />
-      <section className="card">
-        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ margin: 0 }}>Display Controls</h2>
-          <div className="row">
-            <ThemeSwitcher />
-          </div>
-        </div>
-      </section>
-      <section className="portal-main-grid">
-        <article className="card">
-          <h2>News</h2>
-          <NewsTabs tabs={newsTabs} />
-        </article>
-        <article className="card">
-          <h2>SNS Timeline</h2>
-          <XTimelineTabs targets={xTargets} />
-        </article>
-      </section>
-    </main>
+    <AuthGate>
+      <main className="container portal-page">
+        <PortalCupnudleHeader current="portal" />
+        <section className="portal-main-grid">
+          <article className="card">
+            <h2>News</h2>
+            <NewsTabs tabs={newsTabs} />
+          </article>
+          <article className="card">
+            <h2>SNS Timeline</h2>
+            <XTimelineTabs targets={xTargets} />
+          </article>
+        </section>
+      </main>
+    </AuthGate>
   );
 }

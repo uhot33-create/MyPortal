@@ -23,6 +23,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { AuthGate } from '@/components/AuthGate';
+import { PortalCupnudleHeader } from '@/components/PortalCupnudleHeader';
 import ItemSelect from '@/cupnudle/components/stocks/ItemSelect';
 import { assertValidDateInput } from '@/cupnudle/lib/date';
 import { listItems, type Item } from '@/cupnudle/lib/items';
@@ -197,8 +199,12 @@ export default function StocksNewPage() {
   }, [mode]);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-3 py-4 sm:px-4">
-      <section className="mx-auto w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+    <AuthGate>
+      <main className="min-h-screen bg-slate-50 px-3 py-4 sm:px-4">
+        <section className="mx-auto mb-4 w-full max-w-2xl">
+          <PortalCupnudleHeader current="cupnudle" />
+        </section>
+        <section className="mx-auto w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <header className="mb-4">
           <h1 className="text-xl font-bold text-slate-900">在庫を登録</h1>
           <p className="mt-1 text-sm text-slate-600">入力後に保存すると在庫一覧へ戻ります。</p>
@@ -301,7 +307,8 @@ export default function StocksNewPage() {
             </button>
           </div>
         </form>
-      </section>
-    </main>
+        </section>
+      </main>
+    </AuthGate>
   );
 }

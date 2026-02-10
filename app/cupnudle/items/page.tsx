@@ -24,6 +24,8 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { AuthGate } from '@/components/AuthGate';
+import { PortalCupnudleHeader } from '@/components/PortalCupnudleHeader';
 import ItemCreateForm from '@/cupnudle/components/items/ItemCreateForm';
 import ItemEditModal from '@/cupnudle/components/items/ItemEditModal';
 import ItemRow from '@/cupnudle/components/items/ItemRow';
@@ -229,8 +231,12 @@ export default function ItemsPage() {
   const countLabel = useMemo(() => `全${items.length}件`, [items.length]);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-3 py-4 sm:px-4">
-      <section className="mx-auto w-full max-w-2xl space-y-4">
+    <AuthGate>
+      <main className="min-h-screen bg-slate-50 px-3 py-4 sm:px-4">
+        <section className="mx-auto mb-4 w-full max-w-2xl">
+          <PortalCupnudleHeader current="cupnudle" />
+        </section>
+        <section className="mx-auto w-full max-w-2xl space-y-4">
         <header className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-start justify-between gap-2">
             <div>
@@ -296,22 +302,23 @@ export default function ItemsPage() {
             </ul>
           )}
         </section>
-      </section>
+        </section>
 
-      {editingItem && (
-        <ItemEditModal
-          key={editingItem.id}
-          item={editingItem}
-          isSaving={isSavingEdit}
-          errorMessage={editErrorMessage}
-          onClose={() => {
-            if (!isSavingEdit) {
-              setEditingItem(null);
-            }
-          }}
-          onSave={handleSaveEdit}
-        />
-      )}
-    </main>
+        {editingItem && (
+          <ItemEditModal
+            key={editingItem.id}
+            item={editingItem}
+            isSaving={isSavingEdit}
+            errorMessage={editErrorMessage}
+            onClose={() => {
+              if (!isSavingEdit) {
+                setEditingItem(null);
+              }
+            }}
+            onSave={handleSaveEdit}
+          />
+        )}
+      </main>
+    </AuthGate>
   );
 }
