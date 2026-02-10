@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 const THEMES = [
   { id: "default", label: "Default" },
   { id: "sunset", label: "Sunset" },
-  { id: "forest", label: "Forest" }
+  { id: "forest", label: "Forest" },
+  { id: "fall", label: "fall" }
 ] as const;
 
 type ThemeId = (typeof THEMES)[number]["id"];

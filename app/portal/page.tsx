@@ -1,6 +1,5 @@
 export const dynamic = "force-dynamic";
 
-import { LayoutSwitcher } from "@/components/LayoutSwitcher";
 import { NavBar } from "@/components/NavBar";
 import { NewsTabs } from "@/components/NewsTabs";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
@@ -32,23 +31,9 @@ export default async function PortalPage() {
           <h2 style={{ margin: 0 }}>Display Controls</h2>
           <div className="row">
             <ThemeSwitcher />
-            <LayoutSwitcher />
           </div>
         </div>
       </section>
-
-      <section className="card portal-hero-card">
-        <div className="portal-nav-strip">
-          <span>Home</span>
-          <span>|</span>
-          <span>About</span>
-          <span>|</span>
-          <span>Works</span>
-          <span>|</span>
-          <span>Contact</span>
-        </div>
-      </section>
-
       <section className="portal-main-grid">
         <article className="card">
           <h2>News</h2>

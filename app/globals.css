@@ -34,13 +34,15 @@ html[data-theme="forest"] {
   --hero-grad: linear-gradient(120deg, #0d2d27 0%, #155e58 50%, #0f766e 100%);
 }
 
-html[data-layout="layout-b"] {
-  --bg-grad: linear-gradient(180deg, #f7f1e8 0%, #fffdf8 100%);
-  --card: #fffcf5;
-  --text: #4b3d33;
+html[data-theme="fall"] {
+  --bg: #2b1810;
+  --card: #f0f1a4;
+  --text: #000000;
   --muted: #8a6f60;
-  --primary: #cc8c63;
+  --primary: #e5b79a;
   --border: #ecd9c8;
+  --danger: #dc2626;
+  --bg-grad: linear-gradient(180deg, #f7f1e8 0%, #fffdf8 100%);
   --hero-grad: linear-gradient(120deg, #f2e8dc 0%, #f7efe5 50%, #fefcf8 100%);
 }
 
