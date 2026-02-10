@@ -41,7 +41,6 @@ export default async function PortalPage() {
         <div className="portal-hero-banner">
           <div className="portal-hero-block" />
         </div>
-        <div className="portal-float-box">任意の画像</div>
         <div className="portal-nav-strip">
           <span>Home</span>
           <span>|</span>
