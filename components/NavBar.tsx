@@ -11,6 +11,9 @@ export function NavBar({ current }: { current: "portal" | "settings" }) {
         <Link href="/settings">
           <button className={current === "settings" ? "primary" : ""}>設定へ</button>
         </Link>
+        <Link href="/cupnudle">
+          <button>cupnudleへ</button>
+        </Link>
       </div>
     </nav>
   );

@@ -26,6 +26,10 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
 NEXT_PUBLIC_FIREBASE_APP_ID=1:xxxxx:web:xxxxx
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=xxxxx
+
+# cupnudle static login (for /cupnudle)
+AUTH_LOGIN_ID=your-login-id
+AUTH_LOGIN_PASSWORD=your-login-password
 ```
 
 3. 開発サーバー起動
@@ -96,3 +100,12 @@ service cloud.firestore {
 - `/portal` でニュースが表示時に取得される（更新で再取得される）
 - RSS失敗時に該当キーワードのみ失敗表示される
 - Xタブ切替で埋め込みタイムラインが切り替わる
+
+## cupnudle 統合
+
+- `/cupnudle`: 在庫一覧
+- `/cupnudle/login`: ID/パスワードログイン
+- `/cupnudle/items`: 品名マスタ管理
+- `/cupnudle/stocks/new`: 在庫登録
+
+`/cupnudle` 配下は middleware で保護され、`AUTH_LOGIN_ID` / `AUTH_LOGIN_PASSWORD` と一致した場合のみアクセスできます。

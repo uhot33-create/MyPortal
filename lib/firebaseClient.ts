@@ -1,5 +1,6 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const PUBLIC_ENV = {
   NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -35,4 +36,8 @@ export function getClientApp(): FirebaseApp {
 
 export function getClientAuth() {
   return getAuth(getClientApp());
+}
+
+export function getClientDb() {
+  return getFirestore(getClientApp());
 }
