@@ -2,15 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signOut } from "firebase/auth";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { getClientAuth } from "@/lib/firebaseClient";
 
 export function PortalCupnudleHeader({ current }: { current: "portal" | "cupnudle" }) {
   const router = useRouter();
 
   const logout = async () => {
-    await signOut(getClientAuth());
+    await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
     router.refresh();
   };
