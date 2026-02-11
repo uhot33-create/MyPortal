@@ -21,6 +21,9 @@ export function PortalCupnudleHeader({ current }: { current: "portal" | "cupnudl
           <Link href="/portal">
             <button className={current === "portal" ? "primary" : ""}>ポータルへ</button>
           </Link>
+          <Link href="/settings">
+            <button>設定へ</button>
+          </Link>
           <Link href="/cupnudle">
             <button className={current === "cupnudle" ? "primary" : ""}>cupnudleへ</button>
           </Link>
