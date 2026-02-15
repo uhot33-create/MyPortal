@@ -5,13 +5,36 @@ import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type 
 import { NavBar } from "@/components/NavBar";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { getClientAuth } from "@/lib/firebaseClient";
-import type { NewsKeywordSetting, XTargetSetting } from "@/lib/types";
+import type {
+  NewsKeywordSetting,
+  PowerUsageDailySetting,
+  PowerUsageMonthlySetting,
+  XTargetSetting
+} from "@/lib/types";
 
 type NewsForm = Omit<NewsKeywordSetting, "createdAt" | "updatedAt">;
 type XForm = Omit<XTargetSetting, "createdAt" | "updatedAt">;
+type PowerDailyForm = Omit<PowerUsageDailySetting, "createdAt" | "updatedAt">;
+type PowerMonthlyForm = Omit<PowerUsageMonthlySetting, "createdAt" | "updatedAt">;
 
 function withOrder<T extends { order: number }>(items: T[]): T[] {
   return items.map((item, index) => ({ ...item, order: index + 1 }));
+}
+
+function todayDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function currentMonth() {
+  return new Date().toISOString().slice(0, 7);
+}
+
+function formatKwh(value: number) {
+  return `${value.toLocaleString("ja-JP", { maximumFractionDigits: 2 })} kWh`;
+}
+
+function formatYen(value: number) {
+  return `¥${Math.round(value).toLocaleString("ja-JP")}`;
 }
 
 async function authHeaders(user: User | null): Promise<HeadersInit> {
@@ -31,6 +54,8 @@ export default function SettingsPage() {
   const [authLoading, setAuthLoading] = useState(true);
   const [news, setNews] = useState<NewsForm[]>([]);
   const [xTargets, setXTargets] = useState<XForm[]>([]);
+  const [powerDaily, setPowerDaily] = useState<PowerDailyForm[]>([]);
+  const [powerMonthly, setPowerMonthly] = useState<PowerMonthlyForm[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string>("");
@@ -51,6 +76,8 @@ export default function SettingsPage() {
       setLoading(false);
       setNews([]);
       setXTargets([]);
+      setPowerDaily([]);
+      setPowerMonthly([]);
       return;
     }
 
@@ -59,19 +86,24 @@ export default function SettingsPage() {
       setMessage("");
       try {
         const headers = await authHeaders(user);
-        const [newsRes, xRes] = await Promise.all([
+        const [newsRes, xRes, powerRes] = await Promise.all([
           fetch("/api/settings/news", { cache: "no-store", headers }),
-          fetch("/api/settings/x", { cache: "no-store", headers })
+          fetch("/api/settings/x", { cache: "no-store", headers }),
+          fetch("/api/settings/power", { cache: "no-store", headers })
         ]);
 
-        if (!newsRes.ok || !xRes.ok) {
+        if (!newsRes.ok || !xRes.ok || !powerRes.ok) {
           throw new Error("Failed to load settings");
         }
 
         const newsJson = (await newsRes.json()) as { items: NewsForm[] };
         const xJson = (await xRes.json()) as { items: XForm[] };
+        const powerJson = (await powerRes.json()) as { dailyItems: PowerDailyForm[]; monthlyItems: PowerMonthlyForm[] };
+
         setNews(withOrder(newsJson.items));
         setXTargets(withOrder(xJson.items));
+        setPowerDaily(powerJson.dailyItems);
+        setPowerMonthly(powerJson.monthlyItems);
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Failed to load settings");
       } finally {
@@ -84,6 +116,11 @@ export default function SettingsPage() {
 
   const sortedNews = useMemo(() => [...news].sort((a, b) => a.order - b.order), [news]);
   const sortedX = useMemo(() => [...xTargets].sort((a, b) => a.order - b.order), [xTargets]);
+  const sortedPowerDaily = useMemo(() => [...powerDaily].sort((a, b) => b.date.localeCompare(a.date)), [powerDaily]);
+  const sortedPowerMonthly = useMemo(() => [...powerMonthly].sort((a, b) => b.month.localeCompare(a.month)), [powerMonthly]);
+
+  const latestDaily = sortedPowerDaily[0];
+  const latestMonthly = sortedPowerMonthly[0];
 
   const addNews = () => {
     setNews((prev) =>
@@ -115,6 +152,14 @@ export default function SettingsPage() {
         }
       ])
     );
+  };
+
+  const addPowerDaily = () => {
+    setPowerDaily((prev) => [{ id: crypto.randomUUID(), date: todayDate(), powerKwh: 0, costYen: 0 }, ...prev]);
+  };
+
+  const addPowerMonthly = () => {
+    setPowerMonthly((prev) => [{ id: crypto.randomUUID(), month: currentMonth(), powerKwh: 0, costYen: 0 }, ...prev]);
   };
 
   const move = <T extends { id: string }>(rows: T[], id: string, direction: -1 | 1): T[] => {
@@ -165,8 +210,20 @@ export default function SettingsPage() {
           profileUrl: x.profileUrl?.trim() || ""
         }))
       );
+      const dailyPayload = sortedPowerDaily.map((x) => ({
+        id: x.id,
+        date: x.date,
+        powerKwh: Math.max(0, Number(x.powerKwh || 0)),
+        costYen: Math.max(0, Number(x.costYen || 0))
+      }));
+      const monthlyPayload = sortedPowerMonthly.map((x) => ({
+        id: x.id,
+        month: x.month,
+        powerKwh: Math.max(0, Number(x.powerKwh || 0)),
+        costYen: Math.max(0, Number(x.costYen || 0))
+      }));
 
-      const [newsRes, xRes] = await Promise.all([
+      const [newsRes, xRes, powerRes] = await Promise.all([
         fetch("/api/settings/news", {
           method: "POST",
           headers,
@@ -176,16 +233,24 @@ export default function SettingsPage() {
           method: "POST",
           headers,
           body: JSON.stringify({ items: xPayload })
+        }),
+        fetch("/api/settings/power", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ dailyItems: dailyPayload, monthlyItems: monthlyPayload })
         })
       ]);
 
-      if (!newsRes.ok || !xRes.ok) {
-        const maybeError = await xRes.json().catch(() => null);
+      if (!newsRes.ok || !xRes.ok || !powerRes.ok) {
+        const failedRes = [newsRes, xRes, powerRes].find((res) => !res.ok);
+        const maybeError = await failedRes?.json().catch(() => null);
         throw new Error(maybeError?.error ?? "Failed to save settings");
       }
 
       setNews(newsPayload);
       setXTargets(xPayload);
+      setPowerDaily(dailyPayload);
+      setPowerMonthly(monthlyPayload);
       setMessage("Saved");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Failed to save settings");
@@ -255,6 +320,142 @@ export default function SettingsPage() {
               Logout
             </button>
           </div>
+        </div>
+      </section>
+
+      <section className="card">
+        <h2>PC power usage & electricity cost</h2>
+        <p className="muted">Track and manage your daily/monthly consumption history.</p>
+
+        <div className="grid" style={{ marginBottom: 12 }}>
+          <div className="item">
+            <h3 style={{ marginTop: 0 }}>Latest daily</h3>
+            <div className="muted">{latestDaily ? latestDaily.date : "No data"}</div>
+            <div>{latestDaily ? formatKwh(latestDaily.powerKwh) : "-"}</div>
+            <div>{latestDaily ? formatYen(latestDaily.costYen) : "-"}</div>
+          </div>
+          <div className="item">
+            <h3 style={{ marginTop: 0 }}>Latest monthly</h3>
+            <div className="muted">{latestMonthly ? latestMonthly.month : "No data"}</div>
+            <div>{latestMonthly ? formatKwh(latestMonthly.powerKwh) : "-"}</div>
+            <div>{latestMonthly ? formatYen(latestMonthly.costYen) : "-"}</div>
+          </div>
+        </div>
+
+        <h3>Daily history</h3>
+        <div className="item-list">
+          {sortedPowerDaily.map((row) => (
+            <div className="item" key={row.id}>
+              <div className="grid">
+                <label>
+                  Date
+                  <input
+                    type="date"
+                    value={row.date}
+                    onChange={(e) => setPowerDaily((prev) => prev.map((x) => (x.id === row.id ? { ...x, date: e.target.value } : x)))}
+                  />
+                </label>
+                <label>
+                  Power (kWh)
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={row.powerKwh}
+                    onChange={(e) =>
+                      setPowerDaily((prev) =>
+                        prev.map((x) => (x.id === row.id ? { ...x, powerKwh: Math.max(0, Number(e.target.value || 0)) } : x))
+                      )
+                    }
+                  />
+                </label>
+                <label>
+                  Cost (JPY)
+                  <input
+                    type="number"
+                    min={0}
+                    step="1"
+                    value={row.costYen}
+                    onChange={(e) =>
+                      setPowerDaily((prev) =>
+                        prev.map((x) => (x.id === row.id ? { ...x, costYen: Math.max(0, Number(e.target.value || 0)) } : x))
+                      )
+                    }
+                  />
+                </label>
+              </div>
+              <div className="row" style={{ marginTop: 8 }}>
+                <button type="button" className="danger" onClick={() => setPowerDaily((prev) => prev.filter((x) => x.id !== row.id))}>
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="row" style={{ marginTop: 12 }}>
+          <button type="button" onClick={addPowerDaily}>
+            Add daily record
+          </button>
+        </div>
+
+        <h3 style={{ marginTop: 20 }}>Monthly history</h3>
+        <div className="item-list">
+          {sortedPowerMonthly.map((row) => (
+            <div className="item" key={row.id}>
+              <div className="grid">
+                <label>
+                  Month
+                  <input
+                    type="month"
+                    value={row.month}
+                    onChange={(e) => setPowerMonthly((prev) => prev.map((x) => (x.id === row.id ? { ...x, month: e.target.value } : x)))}
+                  />
+                </label>
+                <label>
+                  Power (kWh)
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={row.powerKwh}
+                    onChange={(e) =>
+                      setPowerMonthly((prev) =>
+                        prev.map((x) => (x.id === row.id ? { ...x, powerKwh: Math.max(0, Number(e.target.value || 0)) } : x))
+                      )
+                    }
+                  />
+                </label>
+                <label>
+                  Cost (JPY)
+                  <input
+                    type="number"
+                    min={0}
+                    step="1"
+                    value={row.costYen}
+                    onChange={(e) =>
+                      setPowerMonthly((prev) =>
+                        prev.map((x) => (x.id === row.id ? { ...x, costYen: Math.max(0, Number(e.target.value || 0)) } : x))
+                      )
+                    }
+                  />
+                </label>
+              </div>
+              <div className="row" style={{ marginTop: 8 }}>
+                <button
+                  type="button"
+                  className="danger"
+                  onClick={() => setPowerMonthly((prev) => prev.filter((x) => x.id !== row.id))}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="row" style={{ marginTop: 12 }}>
+          <button type="button" onClick={addPowerMonthly}>
+            Add monthly record
+          </button>
         </div>
       </section>
 

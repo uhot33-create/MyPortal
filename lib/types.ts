@@ -20,6 +20,24 @@ export type XTargetSetting = {
   updatedAt?: string;
 };
 
+export type PowerUsageDailySetting = {
+  id: string;
+  date: string;
+  powerKwh: number;
+  costYen: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type PowerUsageMonthlySetting = {
+  id: string;
+  month: string;
+  powerKwh: number;
+  costYen: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type RssArticle = {
   title: string;
   link: string;
