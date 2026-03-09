@@ -7,11 +7,6 @@ declare global {
   interface Window {
     twttr?: {
       widgets?: {
-        createTimeline?: (
-          source: { sourceType: "profile"; screenName: string },
-          element: HTMLElement,
-          options?: Record<string, unknown>
-        ) => Promise<unknown>;
         load?: (element?: HTMLElement) => void;
       };
     };
@@ -47,22 +42,6 @@ function waitForIframe(element: HTMLElement, timeoutMs: number): Promise<boolean
         resolve(false);
       }
     }, 200);
-  });
-}
-
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
-
-    promise
-      .then((value) => {
-        clearTimeout(timer);
-        resolve(value);
-      })
-      .catch((error) => {
-        clearTimeout(timer);
-        reject(error);
-      });
   });
 }
 
@@ -104,6 +83,7 @@ export default function XEmbedTimeline({ username, profileUrl, height = 600 }: P
         script = document.createElement("script");
         script.src = "https://platform.twitter.com/widgets.js";
         script.async = true;
+        script.charset = "utf-8";
         script.setAttribute("data-x-wjs", "1");
         document.body.appendChild(script);
       }
@@ -113,25 +93,15 @@ export default function XEmbedTimeline({ username, profileUrl, height = 600 }: P
       container.innerHTML = "";
 
       try {
-        const create = window.twttr?.widgets?.createTimeline;
-
-        if (create) {
-          await withTimeout(
-            create({ sourceType: "profile", screenName }, container, {
-              height,
-              chrome: "nofooter"
-            }),
-            10000,
-            "timeline_create_timeout"
-          );
-        } else {
-          const anchor = document.createElement("a");
-          anchor.className = "twitter-timeline";
-          anchor.href = `https://twitter.com/${screenName}`;
-          anchor.textContent = `Posts by @${screenName}`;
-          container.appendChild(anchor);
-          window.twttr?.widgets?.load?.(container);
+        const anchor = document.createElement("a");
+        anchor.className = "twitter-timeline";
+        anchor.href = `https://twitter.com/${screenName}?ref_src=twsrc%5Etfw`;
+        anchor.textContent = `Tweets by ${screenName}`;
+        if (height > 0) {
+          anchor.setAttribute("data-height", String(height));
         }
+        container.appendChild(anchor);
+        window.twttr?.widgets?.load?.(container);
 
         const loaded = await waitForIframe(container, 8000);
         if (cancelled) return;
