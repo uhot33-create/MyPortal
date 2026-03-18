@@ -89,18 +89,18 @@ export function TobaccoCountCard() {
   useEffect(() => {
     const auth = getClientAuth();
     let active = true;
-    let intervalId: ReturnType<typeof window.setInterval> | null = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
     const stopInterval = () => {
       if (intervalId) {
-        window.clearInterval(intervalId);
+        clearInterval(intervalId);
         intervalId = null;
       }
     };
 
     const startInterval = (user: User) => {
       stopInterval();
-      intervalId = window.setInterval(() => {
+      intervalId = setInterval(() => {
         const from = lastSeenRef.current;
         if (!from) return;
 
