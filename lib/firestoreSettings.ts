@@ -11,6 +11,10 @@ type NewsInput = Omit<NewsKeywordSetting, "createdAt" | "updatedAt">;
 type XInput = Omit<XTargetSetting, "createdAt" | "updatedAt">;
 type PowerDailyInput = Omit<PowerUsageDailySetting, "createdAt" | "updatedAt">;
 type PowerMonthlyInput = Omit<PowerUsageMonthlySetting, "createdAt" | "updatedAt">;
+type TobaccoCounterInput = {
+  count: number;
+  lastSeenAt: string;
+};
 
 function toIso(v: unknown): string | undefined {
   if (v instanceof Timestamp) return v.toDate().toISOString();
@@ -32,6 +36,10 @@ function powerDailyCollection() {
 
 function powerMonthlyCollection() {
   return getDb().collection("settings").doc("powerUsageMonthly").collection("items");
+}
+
+function tobaccoCounterDoc() {
+  return getDb().collection("settings").doc("tobaccoCounter");
 }
 
 export async function getNewsSettings(): Promise<NewsKeywordSetting[]> {
@@ -96,6 +104,26 @@ export async function getPowerMonthlySettings(): Promise<PowerUsageMonthlySettin
       updatedAt: toIso(data.updatedAt)
     };
   });
+}
+
+export async function getTobaccoCounterSetting(): Promise<{
+  count: number;
+  lastSeenAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}> {
+  const snap = await tobaccoCounterDoc().get();
+  if (!snap.exists) {
+    return { count: 0 };
+  }
+
+  const data = snap.data() ?? {};
+  return {
+    count: Math.max(0, Number(data.count ?? 0)),
+    lastSeenAt: typeof data.lastSeenAt === "string" ? data.lastSeenAt : undefined,
+    createdAt: toIso(data.createdAt),
+    updatedAt: toIso(data.updatedAt)
+  };
 }
 
 function writeNews(batch: WriteBatch, items: NewsInput[]) {
@@ -231,4 +259,16 @@ export async function savePowerMonthlySettings(items: PowerMonthlyInput[]) {
   );
   writePowerMonthly(batch, items);
   await batch.commit();
+}
+
+export async function saveTobaccoCounterSetting(item: TobaccoCounterInput) {
+  await tobaccoCounterDoc().set(
+    {
+      count: Math.max(0, Math.floor(item.count)),
+      lastSeenAt: item.lastSeenAt,
+      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp()
+    },
+    { merge: true }
+  );
 }
