@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { AuthGate } from "@/components/AuthGate";
 import { NewsTabs } from "@/components/NewsTabs";
 import { PortalCupnudleHeader } from "@/components/PortalCupnudleHeader";
+import { TobaccoCountCard } from "@/components/TobaccoCountCard";
 import { XTimelineTabs } from "@/components/XTimelineTabs";
 import { getNewsSettings, getXSettings } from "@/lib/firestoreSettings";
 import { fetchNewsForKeyword } from "@/lib/rss";
@@ -69,10 +70,14 @@ export default async function PortalPage() {
             <NewsTabs tabs={newsTabs} />
           </article>
           <article className="card">
-            <h2>SNS Timeline</h2>
-            <XTimelineTabs targets={xTargets} />
+            <h2>{"\u30BF\u30D0\u30B3\u30AB\u30A6\u30F3\u30C8"}</h2>
+            <TobaccoCountCard />
           </article>
         </section>
+        <article className="card">
+          <h2>SNS Timeline</h2>
+          <XTimelineTabs targets={xTargets} />
+        </article>
       </main>
     </AuthGate>
   );

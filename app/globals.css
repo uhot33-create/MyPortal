@@ -170,6 +170,24 @@ button.theme-active {
   padding: 10px;
 }
 
+.tobacco-counter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tobacco-counter-label {
+  margin: 0 0 4px;
+}
+
+.tobacco-counter-value {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .portal-page .portal-hero-card {
   position: relative;
   overflow: hidden;
