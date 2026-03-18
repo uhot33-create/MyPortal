@@ -13,7 +13,7 @@ type PowerDailyInput = Omit<PowerUsageDailySetting, "createdAt" | "updatedAt">;
 type PowerMonthlyInput = Omit<PowerUsageMonthlySetting, "createdAt" | "updatedAt">;
 type TobaccoCounterInput = {
   count: number;
-  lastSeenAt: string;
+  lastSeenAt: Date;
 };
 
 function toIso(v: unknown): string | undefined {
@@ -120,7 +120,7 @@ export async function getTobaccoCounterSetting(): Promise<{
   const data = snap.data() ?? {};
   return {
     count: Math.max(0, Number(data.count ?? 0)),
-    lastSeenAt: typeof data.lastSeenAt === "string" ? data.lastSeenAt : undefined,
+    lastSeenAt: toIso(data.lastSeenAt),
     createdAt: toIso(data.createdAt),
     updatedAt: toIso(data.updatedAt)
   };

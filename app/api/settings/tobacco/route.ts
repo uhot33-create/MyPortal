@@ -4,13 +4,25 @@ import { requireUser } from "@/lib/auth";
 
 type TobaccoPayload = {
   count: number;
-  lastSeenAt: string;
+  lastSeenAt: Date;
 };
+
+function parseDate(value: unknown): Date | null {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  return null;
+}
 
 function isValidPayload(payload: TobaccoPayload): boolean {
   if (!Number.isFinite(payload.count)) return false;
-  if (typeof payload.lastSeenAt !== "string" || !payload.lastSeenAt) return false;
-  return !Number.isNaN(new Date(payload.lastSeenAt).getTime());
+  return !Number.isNaN(payload.lastSeenAt.getTime());
 }
 
 export async function GET(req: Request) {
@@ -34,10 +46,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
-    const body = (await req.json()) as Partial<TobaccoPayload>;
+    const body = (await req.json()) as { count?: unknown; lastSeenAt?: unknown };
+    const lastSeenAt = parseDate(body.lastSeenAt);
     const payload: TobaccoPayload = {
       count: Number(body.count ?? 0),
-      lastSeenAt: String(body.lastSeenAt ?? "")
+      lastSeenAt: lastSeenAt ?? new Date(NaN)
     };
 
     if (!isValidPayload(payload)) {
@@ -50,4 +63,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "failed to save tobacco counter" }, { status: 500 });
   }
 }
-
