@@ -15,14 +15,12 @@ npm install
 2. `.env.local` を作成して Firebase 用の値を設定
 ```env
 # Firebase Admin SDK (server only)
-FIREBASE_PROJECT_ID=your-project-id
 FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxx@your-project-id.iam.gserviceaccount.com
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 
 # Firebase Web SDK (client)
 NEXT_PUBLIC_FIREBASE_API_KEY=xxxxx
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
 NEXT_PUBLIC_FIREBASE_APP_ID=1:xxxxx:web:xxxxx
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=xxxxx
